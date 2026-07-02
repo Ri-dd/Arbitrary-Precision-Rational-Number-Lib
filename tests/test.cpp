@@ -15,6 +15,14 @@ void testBigInteger()
     assert((a + b).toString() == "1111111110");
     assert((b - a).toString() == "864197532");
     assert((a * b).toString() == "121932631112635269");
+    assert((BigInteger("-123456789") * b).toString() ==
+           "-121932631112635269");
+
+    std::string largeValue(400, '9');
+    BigInteger large(largeValue);
+    assert((large * large).toString() ==
+           std::string(399, '9') + "8" +
+           std::string(399, '0') + "1");
 
     BigInteger c("100");
     BigInteger d("25");
@@ -55,7 +63,16 @@ void testBigRational()
     assert(a != b);
 
     BigRational e("2/5");
-    std::cout << "2/5 = " << e.toDecimal(10) << '\n';
+    assert(e.toDecimal(10) == "0.4");
+    assert(BigRational("1/2").toDecimal() == "0.5");
+    assert(BigRational("1/4").toDecimal() == "0.25");
+    assert(BigRational("1/3").toDecimal() == "0.(3)");
+    assert(BigRational("2/3").toDecimal() == "0.(6)");
+    assert(BigRational("1/6").toDecimal() == "0.1(6)");
+    assert(BigRational("22/7").toDecimal() == "3.(142857)");
+    assert(BigRational("1/11").toDecimal() == "0.(09)");
+    assert(BigRational("50/8").toDecimal() == "6.25");
+    assert(BigRational("-1/6").toDecimal() == "-0.1(6)");
 
     BigRational f("3/2");
     assert(f.pow(2).toString() == "9/4");
