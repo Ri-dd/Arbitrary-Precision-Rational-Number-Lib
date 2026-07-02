@@ -1,155 +1,96 @@
-# BigRational
+# Arbitrary-Precision Rational Number Library
 
-An object-oriented C++17 library for performing **exact arithmetic on rational numbers of arbitrary size** using a custom arbitrary-precision integer implementation. The library avoids floating-point precision errors by representing rational numbers as a numerator and denominator composed of `BigInteger` objects.
+An object-oriented C++17 library for exact arbitrary-precision integer and rational arithmetic. The library implements custom `BigInteger` and `BigRational` classes capable of performing precise calculations on numbers of arbitrary size while avoiding floating-point precision errors through exact fractional representation.
+
+## Highlights
+
+- Exact arbitrary-precision integer and rational arithmetic using custom `BigInteger` and `BigRational` classes
+- Automatic switching between schoolbook multiplication and **Karatsuba multiplication** for improved performance on large operands
+- Exact decimal conversion with **automatic recurring decimal detection** using hash-based remainder tracking
+- Clean object-oriented design leveraging encapsulation, composition, and operator overloading
+- Built with modern **C++17**, STL, and CMake
+
+---
 
 ## Features
 
-- Arbitrary-precision integer arithmetic
-- Exact rational number representation
-- Automatic fraction simplification using Euclidean GCD
-- Arithmetic operators (`+`, `-`, `*`, `/`)
-- Comparison operators
+### BigInteger
+
+- Arbitrary-precision signed integer arithmetic
+- Addition, subtraction, multiplication, division, and modulo
+- Automatic switching between schoolbook multiplication and Karatsuba multiplication for large operands
+- Efficient binary exponentiation
+- Euclidean GCD implementation
+- Complete comparison and relational operators
 - Stream input/output support
-- Decimal conversion with configurable precision
-- Recurring decimal detection
-- Binary exponentiation for rational powers
-- Optimized multiplication using Karatsuba algorithm
-- Clean object-oriented API
+
+### BigRational
+
+- Exact rational arithmetic using arbitrary-precision integers
+- Automatic fraction normalization using GCD
+- Addition, subtraction, multiplication, division, and exponentiation
+- Exact decimal conversion
+- Automatic detection of recurring decimals using hash-based remainder tracking
+- Comparison operators
+- String and stream conversion utilities
+
+---
 
 ## Project Structure
 
-```
-BigRational/
-│
+```text
+.
 ├── include/
 │   ├── BigInteger.h
 │   └── BigRational.h
-│
 ├── src/
 │   ├── BigInteger.cpp
 │   └── BigRational.cpp
-│
-├── examples/
-│   └── calculator.cpp
-│
 ├── tests/
-│   └── test.cpp
-│
+├── examples/
 ├── CMakeLists.txt
-├── README.md
-└── LICENSE
+└── README.md
 ```
 
-## Architecture
+---
 
-```
-               BigInteger
-         (Arbitrary Precision Integer)
-                    ▲
-                    │
-        used internally by
-                    │
-              BigRational
-                    │
-      Rational Arithmetic Library
-                    │
-   Decimal Conversion / GCD / Power
-```
+## Design
 
-## Technologies Used
+The library follows an object-oriented architecture.
 
-- **Language:** C++17
-- **Build System:** CMake
-- **Compiler:** GCC / Clang
-- **Version Control:** Git, GitHub
-- **IDE:** VS Code / CLion
-- **Standard Library:** `vector`, `string`, `unordered_map`, `algorithm`
+- **Encapsulation** keeps the internal digit representation hidden behind a clean public API.
+- **Composition** is used by `BigRational`, which stores its numerator and denominator as `BigInteger` objects.
+- **Operator overloading** enables arithmetic expressions to resemble native C++ numeric types.
+- **Automatic normalization** ensures every rational number is stored in its reduced canonical form.
 
-## Object-Oriented Design
+---
 
-The project demonstrates several object-oriented programming concepts:
+## Algorithms Used
 
-- Encapsulation
-- Abstraction
-- Composition
-- Operator Overloading
-- Function Overloading
-- Modular Class Design
-- Const Correctness
+| Component | Algorithm |
+|-----------|-----------|
+| Addition / Subtraction | Grade-school arithmetic |
+| Multiplication | Schoolbook multiplication + Karatsuba multiplication |
+| Division | Long division |
+| GCD | Euclidean algorithm |
+| Exponentiation | Binary exponentiation |
+| Fraction Reduction | GCD normalization |
+| Decimal Conversion | Long division |
+| Recurring Decimal Detection | Hash-based remainder tracking (`std::unordered_map`) |
 
-## BigInteger
-
-`BigInteger` stores signed integers of practically unlimited size using a dynamic array of digit blocks.
-
-### Supported Operations
-
-- Addition
-- Subtraction
-- Multiplication
-- Division
-- Modulo
-- Comparisons
-- Absolute value
-- Negation
-
-Internally, numbers are stored in **base 10⁹** to reduce storage overhead and improve arithmetic performance.
-
-## BigRational
-
-`BigRational` represents rational numbers using two `BigInteger` objects:
-
-```cpp
-BigInteger numerator;
-BigInteger denominator;
-```
-
-Every object is automatically normalized by:
-
-- Moving the sign to the numerator
-- Making the denominator positive
-- Dividing numerator and denominator by their GCD
-
-## Algorithms
-
-### Euclidean Algorithm
-
-Used for:
-
-- Fraction simplification
-- Greatest Common Divisor (GCD)
-
-### Long Division
-
-Used for:
-
-- Integer division
-- Modulo
-- Decimal expansion
-
-### Binary Exponentiation
-
-Used to compute powers in **O(log n)** multiplications.
-
-### Karatsuba Multiplication
-
-Large integer multiplication automatically switches to Karatsuba multiplication after a configurable threshold to improve performance.
-
-### Remainder Tracking
-
-Recurring decimal detection is implemented using an `unordered_map` that stores previously encountered remainders while generating decimal digits.
+---
 
 ## Complexity
 
 | Operation | Complexity |
-|------------|------------|
-| Addition | O(n) |
-| Subtraction | O(n) |
-| Comparison | O(n) |
-| Multiplication | O(n²) |
-| Karatsuba Multiplication | O(n^1.585) |
+|-----------|------------|
+| Addition / Subtraction | O(n) |
+| Multiplication | O(n²) for small operands, O(n^1.585) using Karatsuba for large operands |
 | Division | O(n²) |
-| GCD | Depends on operand size |
-| Binary Exponentiation | O(log p) multiplications |
+| GCD | Euclidean algorithm |
+| Exponentiation | O(log p) multiplications |
+
+---
 
 ## Example
 
@@ -161,42 +102,77 @@ using namespace bigint;
 
 int main()
 {
-    BigRational a("22/7");
-    BigRational b("5/8");
+    BigInteger a("123456789123456789123456789");
+    BigInteger b("987654321987654321987654321");
 
-    std::cout << a + b << '\n';
     std::cout << a * b << '\n';
-    std::cout << a.pow(10) << '\n';
-    std::cout << a.toDecimal(30) << '\n';
+
+    BigRational r1("22/7");
+
+    std::cout << r1 << '\n';
+    std::cout << r1.toDecimal() << '\n';
+
+    BigRational r2("1/6");
+    std::cout << r2.toDecimal() << '\n';
 }
 ```
 
+Example output
+
+```text
+22/7
+3.(142857)
+
+1/6
+0.1(6)
+```
+
+---
+
 ## Building
+
+Clone the repository
+
+```bash
+git clone <repository-url>
+cd Arbitrary-Precision-Rational-Number-Library
+```
+
+Build using CMake
 
 ```bash
 mkdir build
 cd build
 
 cmake ..
-make
+cmake --build .
 ```
 
-Run the example program:
+Run
 
 ```bash
-./calculator
+./YourExecutable
 ```
+
+---
+
+## Technologies
+
+- C++17
+- Standard Template Library (STL)
+- CMake
+
+---
 
 ## Future Improvements
 
 - FFT-based multiplication for extremely large integers
-- Arbitrary-precision decimal type
-- Continued fraction support
-- Expression parser
-- GoogleTest unit tests
-- Performance benchmarking
-- Doxygen-generated API documentation
+- Faster division algorithms
+- Additional mathematical functions
+- Expanded benchmarking and test suite
+
+---
 
 ## License
 
-This project is released under the MIT License.
+This project is licensed under the MIT License.
