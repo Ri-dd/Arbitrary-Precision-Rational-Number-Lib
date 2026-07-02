@@ -3,6 +3,7 @@
 
 #include <sstream>
 #include <stdexcept>
+#include <unordered_map>
 
 namespace bigint
 {
@@ -256,28 +257,55 @@ std::string BigRational::toDecimal(int precision) const
     if (precision < 0)
         throw std::invalid_argument("Negative precision");
 
-    BigInteger integerPart = numerator / denominator;
-    BigInteger remainder = numerator % denominator;
+    BigInteger absoluteNumerator = numerator.abs();
+    BigInteger integerPart = absoluteNumerator / denominator;
+    BigInteger remainder = absoluteNumerator % denominator;
 
     std::string result = integerPart.toString();
 
-    if (precision == 0)
+    if (numerator < BigInteger(0))
+        result.insert(result.begin(), '-');
+
+    if (precision == 0 || remainder.isZero())
         return result;
 
     result += ".";
+    std::string fractionalPart;
+    std::unordered_map<std::string, int> remainderPositions;
+    int repeatPosition = -1;
 
-    remainder = remainder.abs();
-
-    for (int i = 0; i < precision && !remainder.isZero(); ++i)
+    while (static_cast<int>(fractionalPart.size()) < precision &&
+           !remainder.isZero())
     {
+        std::string key = remainder.toString();
+        auto repeated = remainderPositions.find(key);
+
+        if (repeated != remainderPositions.end())
+        {
+            repeatPosition = repeated->second;
+            break;
+        }
+
+        remainderPositions.emplace(
+            std::move(key),
+            static_cast<int>(fractionalPart.size()));
+
         remainder *= BigInteger(10);
 
         BigInteger digit = remainder / denominator;
         remainder %= denominator;
 
-        result += digit.toString();
+        fractionalPart += digit.toString();
     }
 
+    if (repeatPosition >= 0)
+    {
+        fractionalPart.insert(
+            static_cast<std::size_t>(repeatPosition), "(");
+        fractionalPart += ")";
+    }
+
+    result += fractionalPart;
     return result;
 }
 
