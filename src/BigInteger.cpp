@@ -354,30 +354,171 @@ BigInteger& BigInteger::operator-=(const BigInteger& rhs)
 // Multiplication
 //--------------------------------------------------------------
 
+void BigInteger::trimDigits(std::vector<int>& value)
+{
+    while (value.size() > 1 && value.back() == 0)
+        value.pop_back();
+}
+
+std::vector<int> BigInteger::addDigits(const std::vector<int>& lhs,
+                                       const std::vector<int>& rhs)
+{
+    std::vector<int> result;
+    result.reserve(std::max(lhs.size(), rhs.size()) + 1);
+
+    long long carry = 0;
+    std::size_t size = std::max(lhs.size(), rhs.size());
+
+    for (std::size_t i = 0; i < size || carry; ++i)
+    {
+        long long current = carry;
+
+        if (i < lhs.size())
+            current += lhs[i];
+
+        if (i < rhs.size())
+            current += rhs[i];
+
+        result.push_back(static_cast<int>(current % BASE));
+        carry = current / BASE;
+    }
+
+    return result;
+}
+
+std::vector<int> BigInteger::subtractDigits(
+    const std::vector<int>& lhs,
+    const std::vector<int>& rhs)
+{
+    std::vector<int> result(lhs);
+    long long borrow = 0;
+
+    for (std::size_t i = 0; i < result.size(); ++i)
+    {
+        long long current = result[i] - borrow;
+
+        if (i < rhs.size())
+            current -= rhs[i];
+
+        if (current < 0)
+        {
+            current += BASE;
+            borrow = 1;
+        }
+        else
+        {
+            borrow = 0;
+        }
+
+        result[i] = static_cast<int>(current);
+    }
+
+    trimDigits(result);
+    return result;
+}
+
+void BigInteger::addShifted(std::vector<int>& result,
+                            const std::vector<int>& value,
+                            std::size_t shift)
+{
+    if (value.size() == 1 && value[0] == 0)
+        return;
+
+    if (result.size() < value.size() + shift + 1)
+        result.resize(value.size() + shift + 1, 0);
+
+    long long carry = 0;
+    std::size_t i = 0;
+
+    for (; i < value.size() || carry; ++i)
+    {
+        long long current = result[i + shift] + carry;
+
+        if (i < value.size())
+            current += value[i];
+
+        result[i + shift] = static_cast<int>(current % BASE);
+        carry = current / BASE;
+    }
+}
+
+std::vector<int> BigInteger::multiplySchoolbook(
+    const std::vector<int>& lhs,
+    const std::vector<int>& rhs)
+{
+    std::vector<int> result(lhs.size() + rhs.size(), 0);
+
+    for (std::size_t i = 0; i < lhs.size(); ++i)
+    {
+        long long carry = 0;
+
+        for (std::size_t j = 0; j < rhs.size() || carry; ++j)
+        {
+            long long current = result[i + j] + carry;
+
+            if (j < rhs.size())
+                current += 1LL * lhs[i] * rhs[j];
+
+            result[i + j] = static_cast<int>(current % BASE);
+            carry = current / BASE;
+        }
+    }
+
+    trimDigits(result);
+    return result;
+}
+
+std::vector<int> BigInteger::multiplyKaratsuba(
+    const std::vector<int>& lhs,
+    const std::vector<int>& rhs)
+{
+    static constexpr std::size_t KARATSUBA_THRESHOLD = 32;
+
+    if (std::min(lhs.size(), rhs.size()) < KARATSUBA_THRESHOLD)
+        return multiplySchoolbook(lhs, rhs);
+
+    std::size_t split = std::max(lhs.size(), rhs.size()) / 2;
+    std::size_t lhsSplit = std::min(split, lhs.size());
+    std::size_t rhsSplit = std::min(split, rhs.size());
+
+    std::vector<int> lhsLow(lhs.begin(), lhs.begin() + lhsSplit);
+    std::vector<int> lhsHigh(lhs.begin() + lhsSplit, lhs.end());
+    std::vector<int> rhsLow(rhs.begin(), rhs.begin() + rhsSplit);
+    std::vector<int> rhsHigh(rhs.begin() + rhsSplit, rhs.end());
+
+    if (lhsLow.empty())
+        lhsLow.push_back(0);
+    if (lhsHigh.empty())
+        lhsHigh.push_back(0);
+    if (rhsLow.empty())
+        rhsLow.push_back(0);
+    if (rhsHigh.empty())
+        rhsHigh.push_back(0);
+
+    std::vector<int> low = multiplyKaratsuba(lhsLow, rhsLow);
+    std::vector<int> high = multiplyKaratsuba(lhsHigh, rhsHigh);
+    std::vector<int> middle = multiplyKaratsuba(
+        addDigits(lhsLow, lhsHigh),
+        addDigits(rhsLow, rhsHigh));
+
+    middle = subtractDigits(middle, low);
+    middle = subtractDigits(middle, high);
+
+    std::vector<int> result(1, 0);
+    addShifted(result, low, 0);
+    addShifted(result, middle, split);
+    addShifted(result, high, split * 2);
+    trimDigits(result);
+
+    return result;
+}
+
 BigInteger BigInteger::operator*(const BigInteger& rhs) const
 {
     BigInteger result;
 
     result.negative = (negative != rhs.negative);
-    result.digits.assign(digits.size() + rhs.digits.size(), 0);
-
-    for (size_t i = 0; i < digits.size(); ++i)
-    {
-        long long carry = 0;
-
-        for (size_t j = 0; j < rhs.digits.size() || carry; ++j)
-        {
-            long long cur = result.digits[i + j] + carry;
-
-            if (j < rhs.digits.size())
-                cur += 1LL * digits[i] * rhs.digits[j];
-
-            result.digits[i + j] = cur % BASE;
-            carry = cur / BASE;
-        }
-    }
-
-    result.trim();
+    result.digits = multiplyKaratsuba(digits, rhs.digits);
 
     if (result.isZero())
         result.negative = false;
